@@ -483,11 +483,17 @@ function LeistungenPage({onPortalLogin}){
   </div>;
 }
 
-function SLAPage({onPortalLogin}){
+function SLAPage({onPortalLogin,addNotification}){
   const [orderPlan,setOrderPlan]=useState(null);
   const [orderDone,setOrderDone]=useState(false);
   const [form,setForm]=useState({firma:"",kontakt:"",email:"",telefon:"",strasse:"",ort:"",bemerkungen:""});
   const setF=(k,v)=>setForm(f=>({...f,[k]:v}));
+
+  const handleOrder=()=>{
+    if(!form.firma||!form.kontakt||!form.email)return;
+    if(addNotification) addNotification({type:"sla",title:`Neue SLA-Anfrage: ${orderPlan.name}`,text:`${form.firma} (${form.kontakt}) möchte das ${orderPlan.name}-Abo abschliessen. CHF ${(parseInt(orderPlan.priceY)).toLocaleString("de-CH")} /Jahr.`,email:form.email,firma:form.firma,plan:orderPlan.name,createdAt:NOW()});
+    setOrderDone(true);
+  };
 
   const prios=[
     {p:"P1 Kritisch",col:C.red,  desc:"Komplettausfall",         s:"4 Std.", g:"1 Std."},
@@ -498,85 +504,88 @@ function SLAPage({onPortalLogin}){
 
   const PLANS=[
     {
-      tier:"STANDARD", name:"Silber", label:"● Silber", price:"890", highlight:false,
-      bg:"linear-gradient(135deg,#3A4A5C,#2A3A50)",
+      tier:"STANDARD", name:"Silber", sym:"●", price:"890", priceY:"890",
+      highlight:false, headBg:"#F5F0E8", headBd:C.border, symCol:"#888", nameCol:"#333",
       zeiten:"Mo–Fr 08:00–17:00", reaktion:"≤ 1 Arbeitstag",
-      l1:"≤ 1 AT", l2:"≤ 8 Std.", l3:"≤ 4 Std.",
+      charakter:"Günstig, solide Basislösung",
       feats:[
-        {l:"1st + 2nd Level",    v:true},
-        {l:"Normal (FIFO)",      v:true},
-        {l:"Onsite Support",     v:false},
-        {l:"Monatl. Report",     v:false},
-        {l:"Pikett 24/7",        v:false},
+        {l:"1st Level + Weiterleitung an 2nd Level bei Bedarf"},
+        {l:"Standard-Hersteller-Support (Back-to-Back)"},
+        {l:"Ersatzteile: Bestellung bei Bedarf (keine Lagerung)"},
+        {l:"Know-how: Office, Netzwerk, allg. IT-Probleme"},
+        {l:"Kontakt via Ticket-System oder zentrale Hotline"},
+        {l:"Normal FIFO Ticket-Bearbeitung"},
       ],
     },
     {
-      tier:"PREMIUM", name:"Gold", label:"★ Gold", price:"1790", highlight:true,
-      bg:"linear-gradient(135deg,#8A6400,#B8860B)",
-      zeiten:"24/7 inkl. Wochenende", reaktion:"≤ 4 Stunden",
-      l1:"≤ 4 Std.", l2:"≤ 4 Std.", l3:"≤ 1 Std.",
+      tier:"PREMIUM", name:"Gold", sym:"★", price:"1'490", priceY:"1'490",
+      highlight:true, headBg:C.goldBg, headBd:C.goldBd, symCol:C.gold, nameCol:C.gold,
+      zeiten:"24/7 (auch nachts & Wochenende)", reaktion:"≤ 4 Stunden",
+      charakter:"Schnell, persönlich, höchste Priorität",
       feats:[
-        {l:"Direkter 2nd-Level-Zugang", v:true},
-        {l:"Priorisierte Bearbeitung",  v:true},
-        {l:"Onsite Support",            v:true},
-        {l:"Monatl. Report",            v:true},
-        {l:"Pikett 24/7",              v:true},
+        {l:"Direkter Zugang zu 2nd Level + Spezialisten"},
+        {l:"Erweiterte Herstellerverträge (schnellere Hilfe)"},
+        {l:"Ersatzteile: Lager vorhanden → sofort verfügbar"},
+        {l:"Know-how: Erweiterter Support inkl. komplexe Systeme"},
+        {l:"Direkter Ansprechpartner, 24/7 Hotline"},
+        {l:"Priorisierte Ticket-Bearbeitung"},
       ],
     },
   ];
 
   const inp={width:"100%",padding:"10px 13px",borderRadius:8,border:`1.5px solid ${C.border}`,fontSize:13,color:C.txt,background:"#F8F4EC",outline:"none",boxSizing:"border-box"};
 
-  return <div style={{background:"#EEF1F6",minHeight:"100vh"}}>
+  return <div style={{background:C.bg,minHeight:"100vh"}}>
     <PageHero label="SLA & SUPPORT-ABOS" title="SLA & Support-Abos" sub="Wählen Sie das passende Abo für Ihr Unternehmen"/>
 
-    {/* ── ABO CARDS ── */}
+    {/* ── ABO CARDS (Screenshot-Struktur) ── */}
     <div style={{padding:"60px 0"}}><div className="container">
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:24,maxWidth:860,margin:"0 auto 52px"}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,maxWidth:900,margin:"0 auto 52px"}}>
         {PLANS.map(pl=>(
-          <div key={pl.name} style={{borderRadius:16,overflow:"hidden",border:`2px solid ${pl.highlight?C.goldBd:C.border}`,boxShadow:pl.highlight?`0 16px 48px rgba(184,134,11,.22)`:"0 4px 20px rgba(0,0,0,.08)",display:"flex",flexDirection:"column"}}>
-            {/* Header */}
-            <div style={{background:pl.bg,padding:"24px 26px 22px"}}>
-              <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,.5)",letterSpacing:".14em",marginBottom:8,textTransform:"uppercase"}}>{pl.tier}</div>
-              <div style={{fontSize:22,fontWeight:800,color:"#fff",marginBottom:14}}>{pl.label} {pl.name}</div>
-              <div style={{display:"flex",alignItems:"baseline",gap:5}}>
-                <span style={{fontSize:36,fontWeight:900,color:"#fff",lineHeight:1}}>CHF {pl.price}.-</span>
-                <span style={{fontSize:13,color:"rgba(255,255,255,.45)"}}>/Mt.</span>
+          <div key={pl.name} style={{borderRadius:14,overflow:"hidden",border:`1.5px solid ${pl.highlight?C.goldBd:C.border}`,boxShadow:pl.highlight?`0 8px 32px rgba(184,134,11,.14)`:"0 2px 12px rgba(0,0,0,.06)",background:C.panel,display:"flex",flexDirection:"column"}}>
+            {/* Header – matches screenshot exactly */}
+            <div style={{background:pl.headBg,borderBottom:`1.5px solid ${pl.headBd}`,padding:"20px 24px",display:"flex",alignItems:"center",gap:12}}>
+              <span style={{fontSize:24,color:pl.symCol,lineHeight:1}}>{pl.sym}</span>
+              <div>
+                <div style={{fontSize:18,fontWeight:800,color:pl.nameCol,lineHeight:1}}>{pl.name}</div>
+                <div style={{fontSize:12,color:C.txtMute,marginTop:3}}>{pl.tier==="STANDARD"?"Standard":"Premium"}</div>
               </div>
-              <div style={{marginTop:10,fontSize:12,color:"rgba(255,255,255,.55)"}}>{pl.zeiten} · Reaktion {pl.reaktion}</div>
             </div>
-            {/* Features */}
-            <div style={{background:"#fff",padding:"16px 26px",flex:1}}>
-              {/* Reaktionszeiten */}
-              <div style={{marginBottom:8}}>
-                <div style={{fontSize:10,fontWeight:700,color:"#aaa",letterSpacing:".06em",textTransform:"uppercase",marginBottom:8}}>Reaktionszeiten</div>
-                {[["1st Level",pl.l1,"#5B9BD5"],["2nd Level",pl.l2,"#E8A020"],["3rd Level",pl.l3,"#E05050"]].map(([lbl,val,col])=>(
-                  <div key={lbl} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid #f0f0f0"}}>
-                    <span style={{fontSize:13,color:"#555"}}>{lbl}</span>
-                    <span style={{fontSize:13,fontWeight:800,color:col}}>{val}</span>
+            {/* Body */}
+            <div style={{padding:"18px 24px",flex:1}}>
+              {/* Preis */}
+              <div style={{display:"flex",alignItems:"baseline",gap:6,marginBottom:16,paddingBottom:14,borderBottom:`1px solid ${C.border}`}}>
+                <span style={{fontSize:28,fontWeight:900,color:pl.highlight?C.gold:C.brownD}}>CHF {pl.price}.-</span>
+                <span style={{fontSize:12,color:C.txtMute}}>/Jahr</span>
+              </div>
+              {/* Supportzeiten */}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
+                <span style={{fontSize:13,color:C.txtMid}}>Supportzeiten</span>
+                <span style={{fontSize:13,fontWeight:700,color:C.brownD}}>{pl.zeiten}</span>
+              </div>
+              {/* Reaktionszeit */}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
+                <span style={{fontSize:13,color:C.txtMid}}>Reaktionszeit</span>
+                <span style={{fontSize:13,fontWeight:700,color:pl.highlight?C.gold:C.brownD}}>{pl.reaktion}</span>
+              </div>
+              {/* Feature checkmarks */}
+              <div style={{marginTop:14,display:"grid",gap:6}}>
+                {pl.feats.map(f=>(
+                  <div key={f.l} style={{display:"flex",alignItems:"flex-start",gap:8,fontSize:12,color:pl.highlight?C.txtMid:C.txtMid,lineHeight:1.4}}>
+                    <Ic n="check" s={13} col={pl.highlight?C.gold:C.green}/><span>{f.l}</span>
                   </div>
                 ))}
               </div>
-              {/* Supportzeiten */}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #f0f0f0"}}>
-                <span style={{fontSize:13,color:"#555"}}>Supportzeiten</span>
-                <span style={{fontSize:12,fontWeight:700,color:"#222"}}>{pl.zeiten}</span>
+              {/* Charakter */}
+              <div style={{marginTop:14,padding:"8px 12px",borderRadius:8,background:pl.highlight?C.goldBg:"#F0F0F0",border:`1px solid ${pl.highlight?C.goldBd:"#ddd"}`,fontSize:12,fontWeight:700,color:pl.highlight?C.gold:"#555",fontStyle:"italic",display:"flex",alignItems:"center",gap:7}}>
+                <Ic n="sparkles" s={13} col={pl.highlight?C.gold:"#555"}/>{pl.charakter}
               </div>
-              {/* Features checkboxes */}
-              {pl.feats.map(f=>(
-                <div key={f.l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #f0f0f0"}}>
-                  <span style={{fontSize:13,color:"#555"}}>{f.l}</span>
-                  <span style={{fontSize:17,color:f.v?"#4CAF50":"#ccc"}}>{f.v?"✓":"—"}</span>
-                </div>
-              ))}
             </div>
-            {/* CTA */}
-            <div style={{background:"#fff",padding:"16px 26px 22px"}}>
-              <button
-                onClick={()=>{setOrderPlan(pl);setOrderDone(false);setForm({firma:"",kontakt:"",email:"",telefon:"",strasse:"",ort:"",bemerkungen:""}); }}
-                style={{width:"100%",padding:"13px",borderRadius:10,border:"none",background:pl.highlight?C.gold:"#2A3A50",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,transition:"opacity .15s"}}
-                onMouseEnter={e=>e.currentTarget.style.opacity=".88"}
-                onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+            {/* CTA Button */}
+            <div style={{padding:"0 24px 22px"}}>
+              <button onClick={()=>{setOrderPlan(pl);setOrderDone(false);setForm({firma:"",kontakt:"",email:"",telefon:"",strasse:"",ort:"",bemerkungen:""});}}
+                style={{width:"100%",padding:"12px",borderRadius:9,border:"none",background:pl.highlight?C.gold:"#2A3A50",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,transition:"opacity .15s"}}
+                onMouseEnter={e=>e.currentTarget.style.opacity=".85"} onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
                 <Ic n="credit-card" s={14} col="#fff"/>Jetzt abonnieren
               </button>
             </div>
@@ -592,7 +601,7 @@ function SLAPage({onPortalLogin}){
           <tbody>{prios.map(r=><tr key={r.p}>
             <td><span style={{display:"inline-flex",alignItems:"center",gap:6}}><span style={{width:8,height:8,borderRadius:"50%",background:r.col,display:"inline-block"}}/><strong style={{fontSize:12,color:C.brownD}}>{r.p}</strong></span></td>
             <td style={{fontSize:12,color:C.txtMid}}>{r.desc}</td>
-            <td style={{fontSize:13,color:C.txt}}>{r.s}</td>
+            <td style={{fontSize:13}}>{r.s}</td>
             <td style={{fontSize:13,fontWeight:700,color:C.gold}}>{r.g}</td>
           </tr>)}</tbody>
         </table>
@@ -611,17 +620,18 @@ function SLAPage({onPortalLogin}){
           <div style={{padding:"48px 32px",textAlign:"center"}}>
             <div style={{width:64,height:64,borderRadius:"50%",background:C.greenBg,border:`2px solid ${C.greenBd}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px"}}><Ic n="circle-check" s={32} col={C.green}/></div>
             <div style={{fontSize:18,fontWeight:700,color:C.brownD,marginBottom:8}}>Abo-Anfrage eingegangen!</div>
-            <div style={{fontSize:13,color:"#666",lineHeight:1.7}}>Wir melden uns innerhalb von 1 Arbeitstag mit Ihrer Vertragsbestätigung.<br/>Monatliches Abo, jederzeit kündbar. Alle Preise exkl. MwSt.</div>
-            <button onClick={()=>setOrderPlan(null)} className="btn btn-gold" style={{marginTop:24}}>Schliessen</button>
+            <div style={{fontSize:13,color:"#666",lineHeight:1.75,marginBottom:16}}>Vielen Dank, <strong>{form.firma}</strong>. Wir haben Ihre Anfrage erhalten und die Geschäftsleitung informiert.<br/>Wir melden uns innerhalb von 1 Arbeitstag mit Ihrer Vertragsbestätigung.<br/><br/>Jährlich: <strong style={{color:C.gold}}>CHF {orderPlan.priceY}.-</strong> · Jederzeit kündbar. Exkl. MwSt.</div>
+            <button onClick={()=>setOrderPlan(null)} className="btn btn-gold">Schliessen</button>
           </div>
         ):(
           <div style={{padding:"20px 24px"}}>
             {/* Plan Badge */}
-            <div style={{background:orderPlan.bg,borderRadius:10,padding:"14px 18px",marginBottom:20,display:"flex",alignItems:"center",gap:12}}>
-              <div style={{width:36,height:36,borderRadius:9,background:"rgba(255,255,255,.15)",display:"flex",alignItems:"center",justifyContent:"center"}}><Ic n="shield-check" s={20} col="#fff"/></div>
+            <div style={{background:orderPlan.highlight?`linear-gradient(135deg,${C.gold},#8A6400)`:
+"linear-gradient(135deg,#3A4A5C,#2A3A50)",borderRadius:10,padding:"14px 18px",marginBottom:20,display:"flex",alignItems:"center",gap:12}}>
+              <div style={{width:36,height:36,borderRadius:9,background:"rgba(255,255,255,.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>{orderPlan.sym}</div>
               <div>
-                <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{orderPlan.label} {orderPlan.name}</div>
-                <div style={{fontSize:12,color:"rgba(255,255,255,.55)"}}>CHF {orderPlan.price}.- /Mt. · Reaktion {orderPlan.reaktion}</div>
+                <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{orderPlan.sym} {orderPlan.name}</div>
+                <div style={{fontSize:12,color:"rgba(255,255,255,.6)"}}>CHF {orderPlan.priceY}.- /Jahr · Reaktion {orderPlan.reaktion}</div>
               </div>
             </div>
             {/* Form */}
@@ -638,11 +648,11 @@ function SLAPage({onPortalLogin}){
               </div>
             </div>
             <div style={{background:"#F8F9FA",borderRadius:8,padding:"10px 13px",fontSize:11,color:"#888",marginTop:12,lineHeight:1.65}}>
-              Mit dem Absenden stimmen Sie den Krypton Solutions AGB zu. Monatliches Abo, jederzeit kündbar. Alle Preise exkl. MwSt.
+              Mit dem Absenden stimmen Sie den Krypton Solutions AGB zu. Jährliches Abo, jederzeit kündbar. Alle Preise exkl. MwSt.
             </div>
             <div style={{display:"flex",gap:12,marginTop:16}}>
               <button onClick={()=>setOrderPlan(null)} style={{flex:1,padding:"12px",borderRadius:9,border:"1.5px solid #ddd",background:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",color:"#555"}}>Abbrechen</button>
-              <button onClick={()=>form.firma&&form.kontakt&&form.email&&setOrderDone(true)} style={{flex:2,padding:"12px",borderRadius:9,border:"none",background:orderPlan.highlight?C.gold:"#2A3A50",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}} onMouseEnter={e=>e.currentTarget.style.opacity=".9"} onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+              <button onClick={handleOrder} style={{flex:2,padding:"12px",borderRadius:9,border:"none",background:orderPlan.highlight?C.gold:"#2A3A50",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}} onMouseEnter={e=>e.currentTarget.style.opacity=".88"} onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
                 <Ic n="credit-card" s={14} col="#fff"/>Abo abschliessen
               </button>
             </div>
@@ -753,73 +763,225 @@ function KontaktPage({onPortalLogin}){
 }
 
 // ── CUSTOMER PORTAL ────────────────────────────────────────────────────────
-function CustomerPortal({customer,tickets,setTickets,onLogout,showChat,setShowChat}){
+function CustomerPortal({customer,tickets,setTickets,onLogout,showChat,setShowChat,addNotification,customerMessages=[]}){
   const [page,setPage]=useState("dashboard");
   const [modal,setModal]=useState(false);
   const [sel,setSel]=useState(null);
+  const [slaPreview,setSlaPreview]=useState(null);
+  const [custSla,setCustSla]=useState(customer.sla);
+  const [showCustNotif,setShowCustNotif]=useState(false);
+  const [custNotifRead,setCustNotifRead]=useState(false);
   const myT=tickets.filter(t=>t.customerId===customer.id);
   const open=myT.filter(t=>t.status==="Offen").length;
   const wip=myT.filter(t=>t.status==="In Bearbeitung").length;
   const esc=myT.filter(t=>t.status==="Eskaliert").length;
   const done=myT.filter(t=>t.status==="Gelöst"||t.status==="Geschlossen").length;
-  const saveT=form=>{const id="T-"+String(_tc++).padStart(4,"0");setTickets(ts=>[{id,...form,customer:customer.name,customerId:customer.id,status:"Offen",createdAt:NOW(),creatorName:customer.contact,source:"portal"},...ts]);setModal(false);};
+  const custNotifs=customerMessages.map(m=>({...m,icon:m.type==="approved"?"circle-check":"circle-x",col:m.type==="approved"?C.green:C.red}));
+  const custUnread=custNotifRead?0:custNotifs.length;
+
+  // Fix 3: sync local SLA when an approved message arrives
+  useEffect(()=>{
+    const lastApproved=customerMessages.filter(m=>m.type==="approved"&&m.newSla).slice(-1)[0];
+    if(lastApproved) setCustSla(lastApproved.newSla);
+  },[customerMessages]);
+
+  const saveT=form=>{
+    const id="T-"+String(_tc++).padStart(4,"0");
+    const t={id,...form,customer:customer.name,customerId:customer.id,status:"Offen",createdAt:NOW(),creatorName:customer.contact,source:"portal"};
+    setTickets(ts=>[t,...ts]);
+    if(addNotification) addNotification({type:"ticket",title:`Neues Portal-Ticket: ${form.title}`,text:`${customer.contact} (${customer.name}) hat Ticket ${id} erstellt: "${form.title}" · Priorität: ${form.priority} · SLA: ${form.sla==="gold"?"★ Gold":"● Silber"}`,email:customer.email,firma:customer.name,createdAt:NOW()});
+    setModal(false);
+  };
+
   const navItems=[{id:"dashboard",icon:"layout-dashboard",l:"Dashboard"},{id:"tickets",icon:"ticket",l:"Meine Tickets"},{id:"sla",icon:"certificate",l:"SLA-Info"},{id:"ai",icon:"robot",l:"KI-Assistent"}];
+
+  // SLA Detail Modal (Fix 2: show full details before requesting)
+  function SLADetailModal({plan,onClose,onRequest}){
+    const isGold=plan.sla==="gold";
+    const prios=[{p:"P1 Kritisch",col:C.red,s:"4 Std.",g:"1 Std."},{p:"P2 Hoch",col:C.amber,s:"8 Std.",g:"4 Std."},{p:"P3 Mittel",col:C.gold,s:"1 AT",g:"8 Std."},{p:"P4 Niedrig",col:C.txtMute,s:"3 AT",g:"1 AT"}];
+    const feats=isGold?[
+      {icon:"clock",         k:"Support-Zeiten",         v:"24/7 (auch nachts & Wochenende)"},
+      {icon:"bolt",          k:"Reaktionszeit",           v:"Innerhalb von 4 Stunden (bei Notfällen schneller)"},
+      {icon:"headset",       k:"Support-Level",           v:"Direkter Zugang zu 2nd Level + Spezialisten"},
+      {icon:"file-contract", k:"Back-to-Back Verträge",   v:"Erweiterte Herstellerverträge (schnellere Hilfe)"},
+      {icon:"package",       k:"Ersatzteile",             v:"Lager vorhanden → sofort verfügbar"},
+      {icon:"brain",         k:"Know-how",                v:"Erweiterter Support inkl. komplexe Systeme"},
+      {icon:"star",          k:"Ticket-Priorität",        v:"Priorisierte Ticket-Bearbeitung"},
+      {icon:"phone",         k:"Kontakt",                 v:"Direkter Ansprechpartner, 24/7 Hotline"},
+    ]:[
+      {icon:"clock",         k:"Support-Zeiten",         v:"Montag – Freitag, 08:00 – 17:00 Uhr"},
+      {icon:"bolt",          k:"Reaktionszeit",           v:"Innerhalb von 1 Arbeitstag"},
+      {icon:"headset",       k:"Support-Level",           v:"1st Level + Weiterleitung an 2nd Level bei Bedarf"},
+      {icon:"file-contract", k:"Back-to-Back Verträge",   v:"Standard-Hersteller-Support"},
+      {icon:"package",       k:"Ersatzteile",             v:"Bestellung bei Bedarf (keine Lagerhaltung)"},
+      {icon:"brain",         k:"Know-how",                v:"Allgemeine IT-Probleme (Office, Netzwerk, Geräte)"},
+      {icon:"star",          k:"Ticket-Priorität",        v:"Normal (FIFO – First In, First Out)"},
+      {icon:"phone",         k:"Kontakt",                 v:"Über Ticket-System oder zentrale Hotline"},
+    ];
+    return <div className="modal-overlay" onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{background:C.panel,border:`1px solid ${isGold?C.goldBd:C.border}`,borderRadius:18,width:"min(620px,96vw)",maxHeight:"92vh",overflowY:"auto",boxShadow:"0 32px 80px rgba(26,14,0,.2)"}}>
+        <div style={{background:isGold?`linear-gradient(135deg,${C.brownD},#3E2210)`:"linear-gradient(135deg,#2E2E2E,#1A1A1A)",padding:"22px 24px",borderRadius:"18px 18px 0 0",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:-20,right:-20,width:120,height:120,borderRadius:"50%",background:"rgba(184,134,11,.1)"}}/>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",position:"relative"}}>
+            <div style={{display:"flex",alignItems:"center",gap:14}}>
+              <div style={{fontSize:40,lineHeight:1}}>{isGold?"★":"●"}</div>
+              <div><div style={{fontSize:22,fontWeight:800,color:isGold?"#F0C040":"#ccc"}}>{plan.name}</div><div style={{fontSize:12,color:"rgba(255,255,255,.45)",marginTop:2}}>CHF {plan.price}.- /Jahr (exkl. MwSt.)</div></div>
+            </div>
+            <button onClick={onClose} style={{width:30,height:30,borderRadius:"50%",background:"rgba(255,255,255,.1)",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}}><Ic n="x" s={14}/></button>
+          </div>
+          <div style={{marginTop:12,display:"flex",gap:7,flexWrap:"wrap"}}>
+            <Badge label={isGold?"24/7 Support":"Mo–Fr Support"} c={isGold?"#F0C040":"#ccc"} bg="rgba(255,255,255,.1)" bd="rgba(255,255,255,.18)" sm/>
+            <Badge label={isGold?"≤ 4 Stunden":"≤ 1 Arbeitstag"} c={isGold?"#F0C040":"#ccc"} bg="rgba(255,255,255,.1)" bd="rgba(255,255,255,.18)" sm/>
+            {isGold&&<Badge label="Pikett 24/7" c="#F0C040" bg="rgba(255,255,255,.1)" bd="rgba(255,255,255,.18)" sm/>}
+          </div>
+        </div>
+        <div style={{padding:"20px 24px"}}>
+          <div style={{fontSize:10,color:C.txtMute,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",marginBottom:10}}>Leistungsumfang</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}>
+            {feats.map(({icon,k,v})=><div key={k} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:9,padding:"10px 12px",display:"flex",gap:8,alignItems:"flex-start"}}>
+              <div style={{width:28,height:28,borderRadius:7,background:isGold?C.goldBg:"#F0F0F0",border:`1px solid ${isGold?C.goldBd:"#ddd"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n={icon} s={13} col={isGold?C.gold:"#666"}/></div>
+              <div><div style={{fontSize:9,color:C.txtMute,fontWeight:700,letterSpacing:".05em",textTransform:"uppercase",marginBottom:1}}>{k}</div><div style={{fontSize:12,fontWeight:600,color:C.brownD}}>{v}</div></div>
+            </div>)}
+          </div>
+          {/* Charakter tagline from Word doc */}
+          <div style={{background:isGold?C.goldBg:"#F0F0F0",border:`1px solid ${isGold?C.goldBd:"#ddd"}`,borderRadius:9,padding:"9px 13px",marginBottom:12,display:"flex",alignItems:"center",gap:8}}>
+            <Ic n="sparkles" s={14} col={isGold?C.gold:"#555"}/>
+            <span style={{fontSize:12,fontWeight:700,color:isGold?C.gold:"#444",fontStyle:"italic"}}>{isGold?"Schnell, persönlich, höchste Priorität":"Günstig, solide Basislösung"}</span>
+          </div>
+          <div style={{fontSize:10,color:C.txtMute,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",marginBottom:7}}>Reaktionszeiten nach Priorität</div>
+          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:9,overflow:"hidden",marginBottom:16}}>
+            {prios.map((r,i)=><div key={r.p} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",borderTop:i>0?`1px solid ${C.border}`:undefined}}>
+              <span style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,color:C.brownD}}><span style={{width:7,height:7,borderRadius:"50%",background:r.col,display:"inline-block"}}/>{r.p}</span>
+              <span style={{fontSize:13,fontWeight:700,color:isGold?C.gold:C.brownD}}>{isGold?r.g:r.s}</span>
+            </div>)}
+          </div>
+          <div style={{display:"flex",gap:10}}>
+            <button onClick={onClose} style={{flex:1,padding:"10px",borderRadius:9,border:`1.5px solid ${C.border}`,background:"transparent",fontSize:12,fontWeight:600,cursor:"pointer",color:C.txtMid}}>Schliessen</button>
+            <button onClick={onRequest} style={{flex:2,padding:"10px",borderRadius:9,border:"none",background:isGold?C.gold:"#2A3A50",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}>
+              <Ic n="arrows-exchange" s={13} col="#fff"/>Zu {plan.name} wechseln – Anfrage stellen
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>;
+  }
+
   return <div style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden"}}>
-    {/* Top bar */}
     <div style={{background:`linear-gradient(90deg,${C.brownD},#2E1A06)`,height:52,display:"flex",alignItems:"center",padding:"0 20px",gap:4,flexShrink:0}}>
       <div style={{display:"flex",alignItems:"center",gap:9,marginRight:22}}><Ic n="diamond" s={13} col="#D4A017"/><span style={{fontSize:12,fontWeight:700,color:"#D4A017"}}>Krypton Solutions</span><span style={{fontSize:9,color:"rgba(255,255,255,.25)",marginLeft:2}}>· Kundenportal</span></div>
       {navItems.map(p=><button key={p.id} onClick={()=>setPage(p.id)} className={`hd-nav-btn ${page===p.id?"active":""}`}><Ic n={p.icon} s={12} col={page===p.id?"#D4A017":"rgba(255,255,255,.38)"}/>{p.l}</button>)}
       <div style={{flex:1}}/>
-      <button onClick={()=>setShowChat(v=>!v)} style={{background:"rgba(184,134,11,.18)",border:"1px solid rgba(212,160,23,.28)",borderRadius:7,padding:"5px 12px",color:"#D4A017",fontSize:11,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:5,marginRight:10}}><Ic n="robot" s={12} col="#D4A017"/>KI-Assistent</button>
+      <button onClick={()=>setShowChat(v=>!v)} style={{background:"rgba(184,134,11,.18)",border:"1px solid rgba(212,160,23,.28)",borderRadius:7,padding:"5px 12px",color:"#D4A017",fontSize:11,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:5,marginRight:6}}><Ic n="robot" s={12} col="#D4A017"/>KI-Assistent</button>
+      {/* Fix 4: Customer notification bell */}
+      <div style={{position:"relative",marginRight:8}}>
+        <button onClick={()=>{setShowCustNotif(v=>!v);setCustNotifRead(true);}} style={{background:"rgba(255,255,255,.07)",border:"1px solid rgba(255,255,255,.12)",borderRadius:6,padding:"5px 9px",cursor:"pointer",display:"flex",alignItems:"center",gap:5,color:"rgba(255,255,255,.6)"}}>
+          <Ic n="bell" s={14} col={custUnread>0?"#D4A017":"rgba(255,255,255,.5)"}/>
+          {custUnread>0&&<span style={{background:C.red,color:"#fff",fontSize:9,fontWeight:700,borderRadius:10,padding:"1px 5px",minWidth:16,textAlign:"center"}}>{custUnread}</span>}
+        </button>
+        {showCustNotif&&<div style={{position:"absolute",right:0,top:"calc(100% + 6px)",width:320,background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,boxShadow:"0 12px 40px rgba(0,0,0,.18)",zIndex:300,overflow:"hidden"}}>
+          <div style={{padding:"11px 15px",borderBottom:`1px solid ${C.border}`,fontSize:12,fontWeight:700,color:C.brownD,display:"flex",justifyContent:"space-between"}}>
+            <span>Meine Benachrichtigungen</span><span style={{fontSize:10,color:C.txtMute}}>{custNotifs.length+myT.length>0?myT.length+" Tickets":""}</span>
+          </div>
+          <div style={{maxHeight:300,overflowY:"auto"}}>
+            <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`}}>
+              <div style={{fontSize:10,color:C.txtMute,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase",marginBottom:6}}>Ticket-Übersicht</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+                {[{l:"Offen",n:open,col:C.gold},{l:"In Bearbeitung",n:wip,col:C.amber},{l:"Eskaliert",n:esc,col:C.red},{l:"Gelöst",n:done,col:C.green}].map(s=>(
+                  <div key={s.l} style={{display:"flex",alignItems:"center",gap:5,padding:"4px 7px",background:s.col+"0F",borderRadius:6,border:`1px solid ${s.col}28`}}>
+                    <span style={{width:7,height:7,borderRadius:"50%",background:s.col,display:"inline-block",flexShrink:0}}/>
+                    <span style={{fontSize:11,fontWeight:700,color:s.col}}>{s.n}</span>
+                    <span style={{fontSize:10,color:C.txtMute}}>{s.l}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {custNotifs.length===0
+              ?<div style={{padding:"18px",textAlign:"center",color:C.txtMute,fontSize:12}}>Keine SLA-Benachrichtigungen</div>
+              :custNotifs.map((n,i)=><div key={i} style={{padding:"11px 14px",borderBottom:`1px solid ${C.border}`,display:"flex",gap:9,alignItems:"flex-start"}}>
+                <div style={{width:28,height:28,borderRadius:7,background:n.type==="approved"?C.greenBg:C.redBg,border:`1px solid ${n.type==="approved"?C.greenBd:C.redBd}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n={n.icon} s={13} col={n.col}/></div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:11,fontWeight:700,color:n.col,marginBottom:2}}>{n.type==="approved"?"SLA genehmigt ✅":"SLA abgelehnt ❌"}</div>
+                  <div style={{fontSize:10,color:C.txtMid,lineHeight:1.5}}>{n.text}</div>
+                  <div style={{fontSize:9,color:C.txtMute,marginTop:3}}>{FMT(n.createdAt)}</div>
+                </div>
+              </div>)}
+          </div>
+        </div>}
+      </div>
       <PIAvatar name={customer.contact} size={26}/>
-      <div style={{marginLeft:8,marginRight:10}}><div style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,.85)"}}>{customer.contact.split(" ")[0]}</div><div style={{fontSize:9,color:"rgba(255,255,255,.35)"}}>{customer.sla==="gold"?"★ Gold":"● Silber"}</div></div>
+      <div style={{marginLeft:8,marginRight:10}}><div style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,.85)"}}>{customer.contact.split(" ")[0]}</div><div style={{fontSize:9,color:"rgba(255,255,255,.35)"}}>{custSla==="gold"?"★ Gold":"● Silber"}</div></div>
       <button onClick={onLogout} style={{background:"rgba(255,255,255,.07)",border:"1px solid rgba(255,255,255,.12)",borderRadius:6,padding:"4px 9px",color:"rgba(255,255,255,.4)",fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}><Ic n="logout" s={11}/>Logout</button>
     </div>
     <div style={{flex:1,overflowY:"auto",background:C.bg}}>
-      {/* DASHBOARD */}
       {page==="dashboard"&&<div style={{padding:24,maxWidth:960,margin:"0 auto"}}>
-        <div style={{marginBottom:22}}><h2 style={{fontSize:20,fontWeight:800,color:C.brownD}}>Guten Tag, {customer.contact.split(" ")[0]} 👋</h2><p style={{fontSize:12,color:C.txtMute,marginTop:3}}>{customer.name} · SLA <strong style={{color:C.gold}}>{customer.sla==="gold"?"★ Gold (24/7, ≤4h)":"● Silber (Mo–Fr, ≤1 AT)"}</strong></p></div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
+        <div style={{marginBottom:16}}><h2 style={{fontSize:20,fontWeight:800,color:C.brownD}}>Guten Tag, {customer.contact.split(" ")[0]} 👋</h2><p style={{fontSize:12,color:C.txtMute,marginTop:3}}>{customer.name} · SLA <strong style={{color:C.gold}}>{custSla==="gold"?"★ Gold (24/7, ≤4h)":"● Silber (Mo–Fr, ≤1 AT)"}</strong></p></div>
+        {customerMessages.length>0&&<div style={{marginBottom:14,display:"grid",gap:8}}>{customerMessages.map((msg,i)=><div key={i} style={{background:msg.type==="approved"?C.greenBg:C.redBg,border:`1px solid ${msg.type==="approved"?C.greenBd:C.redBd}`,borderRadius:10,padding:"12px 16px",display:"flex",gap:10,alignItems:"flex-start"}}><Ic n={msg.type==="approved"?"circle-check":"circle-x"} s={18} col={msg.type==="approved"?C.green:C.red}/><div><div style={{fontSize:12,fontWeight:700,color:msg.type==="approved"?C.green:C.red,marginBottom:2}}>{msg.type==="approved"?"SLA genehmigt ✅":"SLA abgelehnt ❌"}</div><div style={{fontSize:12,color:C.txt,lineHeight:1.6}}>{msg.text}</div></div></div>)}</div>}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:18}}>
           {[{l:"Offen",n:open,col:C.gold,icon:"circle"},{l:"In Bearbeitung",n:wip,col:C.amber,icon:"clock"},{l:"Eskaliert",n:esc,col:C.red,icon:"alert-triangle"},{l:"Gelöst",n:done,col:C.green,icon:"circle-check"}].map(s=><div key={s.l} style={{background:C.panel,border:`1px solid ${C.border}`,borderLeft:`4px solid ${s.col}`,borderRadius:12,padding:"14px",display:"flex",gap:11,alignItems:"center"}}><div style={{width:38,height:38,borderRadius:9,background:s.col+"14",display:"flex",alignItems:"center",justifyContent:"center"}}><Ic n={s.icon} s={18} col={s.col}/></div><div><div style={{fontSize:22,fontWeight:800,color:C.brownD,lineHeight:1}}>{s.n}</div><div style={{fontSize:10,color:C.txtMute,marginTop:2}}>{s.l}</div></div></div>)}
         </div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><h3 style={{fontSize:14,fontWeight:700,color:C.brownD}}>Aktuelle Tickets</h3><button onClick={()=>setModal(true)} className="btn btn-gold btn-sm"><Ic n="plus" s={13} col="#fff"/>Neues Ticket</button></div>
-        <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden",marginBottom:18}}>
+        <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden",marginBottom:16}}>
           <table className="data-table"><thead><tr>{["ID","Betreff","Kategorie","Priorität","Status","SLA"].map(h=><th key={h}>{h}</th>)}</tr></thead>
-          <tbody>{myT.length===0?<tr><td colSpan={6} style={{textAlign:"center",padding:"36px",color:C.txtMute}}>Keine Tickets vorhanden<br/><button onClick={()=>setModal(true)} className="btn btn-gold btn-sm" style={{marginTop:10}}>Erstes Ticket erstellen</button></td></tr>:myT.slice(0,5).map(t=>{const sc=SC[t.status]||SC["Offen"],pc=PC[t.priority]||PC.Niedrig;return<tr key={t.id} onClick={()=>setSel(t)}><td style={{fontFamily:"monospace",fontSize:10,fontWeight:700,color:C.gold}}>{t.id}</td><td style={{fontWeight:600,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</td><td style={{fontSize:11,color:C.txtMid}}>{t.category}</td><td><Badge label={t.priority} c={pc.c} bg={pc.bg} bd={pc.bd} sm dot/></td><td><Badge label={t.status} c={sc.c} bg={sc.bg} bd={sc.bd} sm/></td><td style={{minWidth:100}}><SLABar createdAt={t.createdAt} sla={t.sla} status={t.status}/></td></tr>;})}
+          <tbody>{myT.length===0?<tr><td colSpan={6} style={{textAlign:"center",padding:"32px",color:C.txtMute}}>Keine Tickets<br/><button onClick={()=>setModal(true)} className="btn btn-gold btn-sm" style={{marginTop:10}}>Erstes Ticket erstellen</button></td></tr>:myT.slice(0,5).map(t=>{const sc=SC[t.status]||SC["Offen"],pc=PC[t.priority]||PC.Niedrig;return<tr key={t.id} onClick={()=>setSel(t)}><td style={{fontFamily:"monospace",fontSize:10,fontWeight:700,color:C.gold}}>{t.id}</td><td style={{fontWeight:600,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</td><td style={{fontSize:11,color:C.txtMid}}>{t.category}</td><td><Badge label={t.priority} c={pc.c} bg={pc.bg} bd={pc.bd} sm dot/></td><td><Badge label={t.status} c={sc.c} bg={sc.bg} bd={sc.bd} sm/></td><td style={{minWidth:100}}><SLABar createdAt={t.createdAt} sla={t.sla} status={t.status}/></td></tr>;})}
           </tbody></table>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
           {[{icon:"ticket-plus",t:"Neues Ticket",d:"Problem melden",action:()=>setModal(true),col:C.gold},{icon:"robot",t:"KI-Assistent",d:"Sofortige Hilfe",action:()=>setShowChat(v=>!v),col:C.violet},{icon:"certificate",t:"Mein SLA",d:"Servicemodell ansehen",action:()=>setPage("sla"),col:C.green}].map(a=><div key={a.t} onClick={a.action} style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px",cursor:"pointer",display:"flex",gap:11,alignItems:"center",transition:"all .15s"}} onMouseEnter={e=>{e.currentTarget.style.boxShadow=`0 4px 18px ${a.col}1A`;e.currentTarget.style.borderColor=a.col+"50";}} onMouseLeave={e=>{e.currentTarget.style.boxShadow="";e.currentTarget.style.borderColor=C.border;}}><div style={{width:40,height:40,borderRadius:10,background:a.col+"14",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n={a.icon} s={19} col={a.col}/></div><div><div style={{fontSize:13,fontWeight:700,color:C.brownD}}>{a.t}</div><div style={{fontSize:11,color:C.txtMute,marginTop:1}}>{a.d}</div></div></div>)}
         </div>
       </div>}
-      {/* TICKETS */}
       {page==="tickets"&&<div style={{padding:24,maxWidth:1060,margin:"0 auto"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}><div><h2 style={{fontSize:18,fontWeight:800,color:C.brownD}}>Meine Tickets</h2><p style={{fontSize:12,color:C.txtMute,marginTop:2}}>{myT.length} Ticket{myT.length!==1?"s":""} · {customer.name}</p></div><button onClick={()=>setModal(true)} className="btn btn-gold"><Ic n="plus" s={14} col="#fff"/>Neues Ticket</button></div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}><div><h2 style={{fontSize:18,fontWeight:800,color:C.brownD}}>Meine Tickets</h2><p style={{fontSize:12,color:C.txtMute,marginTop:2}}>{myT.length} Ticket{myT.length!==1?"s":""}</p></div><button onClick={()=>setModal(true)} className="btn btn-gold"><Ic n="plus" s={14} col="#fff"/>Neues Ticket</button></div>
         <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,overflow:"hidden"}}>
           <table className="data-table"><thead><tr>{["ID","Betreff","Kategorie","SLA","Priorität","Status","SLA-Zeit","Erstellt"].map(h=><th key={h}>{h}</th>)}</tr></thead>
           <tbody>{myT.length===0?<tr><td colSpan={8} style={{textAlign:"center",padding:"50px",color:C.txtMute,fontSize:14}}>Noch keine Tickets<br/><button onClick={()=>setModal(true)} className="btn btn-gold btn-sm" style={{marginTop:12}}>Erstes Ticket erstellen</button></td></tr>:myT.map(t=>{const sc=SC[t.status]||SC["Offen"],pc=PC[t.priority]||PC.Niedrig;return<tr key={t.id} onClick={()=>setSel(t)}><td style={{fontFamily:"monospace",fontSize:10,fontWeight:700,color:C.gold}}>{t.id}</td><td style={{fontWeight:600,fontSize:12,maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</td><td style={{fontSize:11,color:C.txtMid}}>{t.category}</td><td><Badge label={t.sla==="gold"?"★ Gold":"● Silber"} c={t.sla==="gold"?C.gold:C.txtMid} bg={C.goldBg} bd={C.goldBd} sm/></td><td><Badge label={t.priority} c={pc.c} bg={pc.bg} bd={pc.bd} sm dot/></td><td><Badge label={t.status} c={sc.c} bg={sc.bg} bd={sc.bd} sm/></td><td style={{minWidth:100}}><SLABar createdAt={t.createdAt} sla={t.sla} status={t.status}/></td><td style={{fontSize:10,color:C.txtMute,whiteSpace:"nowrap"}}>{FMT(t.createdAt)}</td></tr>;})}
           </tbody></table>
         </div>
       </div>}
-      {/* SLA */}
       {page==="sla"&&<div style={{padding:24,maxWidth:760,margin:"0 auto"}}>
-        <h2 style={{fontSize:18,fontWeight:800,color:C.brownD,marginBottom:18}}>Mein Servicemodell</h2>
-        <div style={{background:customer.sla==="gold"?`linear-gradient(135deg,${C.brownD},#3E2210)`:"linear-gradient(135deg,#3a3a3a,#222)",borderRadius:14,padding:"24px 28px",marginBottom:18,position:"relative",overflow:"hidden"}}>
+        <h2 style={{fontSize:18,fontWeight:800,color:C.brownD,marginBottom:16}}>Mein Servicemodell</h2>
+        {customerMessages.length>0&&<div style={{marginBottom:16,display:"grid",gap:10}}>{customerMessages.map((msg,i)=><div key={i} style={{background:msg.type==="approved"?C.greenBg:C.redBg,border:`1px solid ${msg.type==="approved"?C.greenBd:C.redBd}`,borderRadius:12,padding:"14px 18px",display:"flex",gap:12,alignItems:"flex-start"}}><div style={{width:36,height:36,borderRadius:9,background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n={msg.type==="approved"?"circle-check":"circle-x"} s={20} col={msg.type==="approved"?C.green:C.red}/></div><div style={{flex:1}}><div style={{fontSize:13,fontWeight:700,color:msg.type==="approved"?C.green:C.red,marginBottom:4}}>{msg.type==="approved"?"SLA-Anfrage genehmigt ✅":"SLA-Anfrage abgelehnt ❌"}</div><div style={{fontSize:13,color:C.txt,lineHeight:1.65}}>{msg.text}</div><div style={{fontSize:10,color:C.txtMute,marginTop:6}}>{FMT(msg.createdAt)}</div></div></div>)}</div>}
+        <div style={{background:custSla==="gold"?`linear-gradient(135deg,${C.brownD},#3E2210)`:"linear-gradient(135deg,#3a3a3a,#222)",borderRadius:14,padding:"22px 26px",marginBottom:16,position:"relative",overflow:"hidden"}}>
           <div style={{position:"absolute",top:-30,right:-30,width:160,height:160,borderRadius:"50%",background:"rgba(184,134,11,.1)"}}/>
           <div style={{display:"flex",alignItems:"center",gap:16,position:"relative"}}>
-            <div style={{fontSize:48,lineHeight:1}}>{customer.sla==="gold"?"★":"●"}</div>
-            <div><div style={{fontSize:26,fontWeight:800,color:customer.sla==="gold"?"#F0C040":"#ccc"}}>{customer.sla==="gold"?"Gold":"Silber"} Plan</div><div style={{fontSize:12,color:"rgba(255,255,255,.45)",marginTop:3}}>{customer.name}</div></div>
-            <div style={{marginLeft:"auto",background:"rgba(255,255,255,.09)",borderRadius:9,padding:"9px 14px",textAlign:"right"}}><div style={{fontSize:10,color:"rgba(255,255,255,.4)"}}>Reaktionszeit</div><div style={{fontSize:22,fontWeight:800,color:customer.sla==="gold"?"#F0C040":"#ccc"}}>{customer.sla==="gold"?"≤ 4h":"≤ 1 AT"}</div></div>
+            <div style={{fontSize:46,lineHeight:1}}>{custSla==="gold"?"★":"●"}</div>
+            <div><div style={{fontSize:24,fontWeight:800,color:custSla==="gold"?"#F0C040":"#ccc"}}>{custSla==="gold"?"Gold":"Silber"} Plan</div><div style={{fontSize:12,color:"rgba(255,255,255,.45)",marginTop:2}}>{customer.name}</div></div>
+            <div style={{marginLeft:"auto",background:"rgba(255,255,255,.09)",borderRadius:9,padding:"9px 14px",textAlign:"right"}}><div style={{fontSize:10,color:"rgba(255,255,255,.4)"}}>Reaktionszeit</div><div style={{fontSize:20,fontWeight:800,color:custSla==="gold"?"#F0C040":"#ccc"}}>{custSla==="gold"?"≤ 4h":"≤ 1 AT"}</div></div>
           </div>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:18}}>
-          {[{icon:"clock",k:"Support-Zeiten",v:customer.sla==="gold"?"24/7 inkl. Wochenende":"Mo–Fr 08:00–17:00"},{icon:"headset",k:"Support-Level",v:customer.sla==="gold"?"Direkter 2nd-Level":"1st + 2nd Level"},{icon:"package",k:"Ersatzteile",v:customer.sla==="gold"?"Lager vorhanden":"Bestellung bei Bedarf"},{icon:"star",k:"Priorität",v:customer.sla==="gold"?"Priorisiert":"Normal (FIFO)"}].map(({icon,k,v})=><div key={k} style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:11,padding:"14px 16px",display:"flex",gap:11,alignItems:"flex-start"}}><div style={{width:34,height:34,borderRadius:8,background:C.goldBg,border:`1px solid ${C.goldBd}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n={icon} s={15} col={C.gold}/></div><div><div style={{fontSize:9,color:C.txtMute,fontWeight:700,letterSpacing:".06em",marginBottom:2,textTransform:"uppercase"}}>{k}</div><div style={{fontSize:13,fontWeight:600,color:C.brownD}}>{v}</div></div></div>)}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+          {[{icon:"clock",k:"Support-Zeiten",v:custSla==="gold"?"24/7 inkl. Wochenende":"Mo–Fr 08:00–17:00"},{icon:"headset",k:"Support-Level",v:custSla==="gold"?"Direkter 2nd-Level":"1st + 2nd Level"},{icon:"package",k:"Ersatzteile",v:custSla==="gold"?"Lager vorhanden":"Bestellung bei Bedarf"},{icon:"star",k:"Priorität",v:custSla==="gold"?"Priorisiert":"Normal (FIFO)"}].map(({icon,k,v})=><div key={k} style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:11,padding:"12px 14px",display:"flex",gap:10,alignItems:"flex-start"}}><div style={{width:32,height:32,borderRadius:8,background:C.goldBg,border:`1px solid ${C.goldBd}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n={icon} s={14} col={C.gold}/></div><div><div style={{fontSize:9,color:C.txtMute,fontWeight:700,letterSpacing:".06em",marginBottom:2,textTransform:"uppercase"}}>{k}</div><div style={{fontSize:13,fontWeight:600,color:C.brownD}}>{v}</div></div></div>)}
+        </div>
+        {/* Fix 2: Wechseln button shows detail modal */}
+        <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:16}}>
+          <div style={{fontSize:13,fontWeight:700,color:C.brownD,marginBottom:4,display:"flex",alignItems:"center",gap:7}}><Ic n="arrows-exchange" s={15} col={C.gold}/>Servicemodell wechseln</div>
+          <div style={{fontSize:12,color:C.txtMid,marginBottom:12}}>Klicken Sie auf ein Modell um alle Details zu sehen, bevor Sie eine Anfrage stellen.</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            {[{sym:"●",name:"Silber",sla:"silver",price:"890",zeiten:"Mo–Fr 08:00–17:00",react:"≤ 1 Arbeitstag",col:"#666",bg:"#F5F0E8",bd:C.border},{sym:"★",name:"Gold",sla:"gold",price:"1'490",zeiten:"24/7 inkl. Wochenende",react:"≤ 4 Stunden",col:C.gold,bg:C.goldBg,bd:C.goldBd}].map(pl=>{
+              const isCurrent=custSla===pl.sla;
+              return <div key={pl.name} style={{border:`2px solid ${isCurrent?pl.col:C.border}`,borderRadius:11,overflow:"hidden"}}>
+                <div style={{background:pl.bg,padding:"10px 12px",borderBottom:`1px solid ${pl.bd}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:16,color:pl.col}}>{pl.sym}</span><span style={{fontSize:13,fontWeight:800,color:pl.col}}>{pl.name}</span></div>
+                  <span style={{fontSize:11,fontWeight:700,color:pl.col}}>CHF {pl.price}.-/J.</span>
+                </div>
+                <div style={{padding:"10px 12px",background:"#fff"}}>
+                  <div style={{fontSize:11,color:C.txtMid,marginBottom:2}}>{pl.zeiten}</div>
+                  <div style={{fontSize:11,color:C.txtMid,marginBottom:9}}>Reaktion: <strong style={{color:pl.col}}>{pl.react}</strong></div>
+                  {isCurrent
+                    ?<div style={{padding:"6px",borderRadius:7,background:pl.col+"14",fontSize:11,fontWeight:700,color:pl.col,textAlign:"center"}}>✓ Aktuelles Modell</div>
+                    :<button onClick={()=>setSlaPreview(pl)} style={{width:"100%",padding:"7px",borderRadius:7,border:`1.5px solid ${pl.col}`,background:"transparent",color:pl.col,fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+                      <Ic n="info-circle" s={12} col={pl.col}/>Details & Anfrage stellen
+                    </button>}
+                </div>
+              </div>;
+            })}
+          </div>
         </div>
         <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden"}}>
-          <table className="data-table"><thead><tr>{["Priorität","Ihre Reaktionszeit"].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{[{p:"P1 Kritisch",col:C.red,s:"4 Std.",g:"1 Std."},{p:"P2 Hoch",col:C.amber,s:"8 Std.",g:"4 Std."},{p:"P3 Mittel",col:C.gold,s:"1 AT",g:"8 Std."},{p:"P4 Niedrig",col:C.txtMute,s:"3 AT",g:"1 AT"}].map(r=><tr key={r.p}><td><span style={{display:"inline-flex",alignItems:"center",gap:6}}><span style={{width:7,height:7,borderRadius:"50%",background:r.col,display:"inline-block"}}/><strong style={{fontSize:12,color:C.brownD}}>{r.p}</strong></span></td><td style={{fontSize:13,fontWeight:700,color:customer.sla==="gold"?C.gold:C.brownD}}>{customer.sla==="gold"?r.g:r.s}</td></tr>)}</tbody></table>
+          <table className="data-table"><thead><tr>{["Priorität","Ihre Reaktionszeit"].map(h=><th key={h}>{h}</th>)}</tr></thead>
+          <tbody>{[{p:"P1 Kritisch",col:C.red,s:"4 Std.",g:"1 Std."},{p:"P2 Hoch",col:C.amber,s:"8 Std.",g:"4 Std."},{p:"P3 Mittel",col:C.gold,s:"1 AT",g:"8 Std."},{p:"P4 Niedrig",col:C.txtMute,s:"3 AT",g:"1 AT"}].map(r=><tr key={r.p}><td><span style={{display:"inline-flex",alignItems:"center",gap:6}}><span style={{width:7,height:7,borderRadius:"50%",background:r.col,display:"inline-block"}}/><strong style={{fontSize:12,color:C.brownD}}>{r.p}</strong></span></td><td style={{fontSize:13,fontWeight:700,color:custSla==="gold"?C.gold:C.brownD}}>{custSla==="gold"?r.g:r.s}</td></tr>)}
+          </tbody></table>
         </div>
       </div>}
-      {/* AI PAGE */}
       {page==="ai"&&<div style={{padding:24,maxWidth:660,margin:"0 auto"}}>
         <h2 style={{fontSize:18,fontWeight:800,color:C.brownD,marginBottom:4}}>KI-Support Assistent</h2>
         <p style={{fontSize:13,color:C.txtMute,marginBottom:18}}>Stellen Sie Ihre IT-Fragen direkt – rund um die Uhr verfügbar</p>
@@ -828,26 +990,64 @@ function CustomerPortal({customer,tickets,setTickets,onLogout,showChat,setShowCh
         </div>
       </div>}
     </div>
-    {modal&&<TicketModal onClose={()=>setModal(false)} onSave={saveT} currentUser={null} isPortal customer={customer}/>}
+    {modal&&<TicketModal onClose={()=>setModal(false)} onSave={saveT} currentUser={null} isPortal customer={{...customer,sla:custSla}}/>}
     {sel&&<TicketDetail t={sel} onClose={()=>setSel(null)} onUpdate={()=>setSel(null)} isAdmin={false}/>}
+    {slaPreview&&<SLADetailModal plan={slaPreview} onClose={()=>setSlaPreview(null)} onRequest={()=>{
+      if(addNotification) addNotification({type:"sla",title:`SLA-Wechsel: → ${slaPreview.name}`,text:`${customer.contact} (${customer.name}) möchte von ${custSla==="gold"?"Gold":"Silber"} zu ${slaPreview.name} wechseln. CHF ${slaPreview.price}.- /Jahr.`,email:customer.email,firma:customer.name,plan:slaPreview.name,customerId:customer.id,targetSla:slaPreview.sla,createdAt:NOW()});
+      setSlaPreview(null);
+      alert("✅ Ihre Anfrage wurde eingereicht. Die Geschäftsleitung meldet sich innerhalb von 1 Arbeitstag.");
+    }}/>}
   </div>;
 }
 
 // ── HELPDESK ───────────────────────────────────────────────────────────────
-function HDBar({page,setPage,user,onLogout}){
+function HDBar({page,setPage,user,onLogout,notifications=[],unread=0,showNotif,setShowNotif,isCxO}){
   const isAdmin=user.role==="Admin";
   const pages=[{id:"dashboard",icon:"layout-dashboard",l:"Dashboard"},{id:"tickets",icon:"ticket",l:"Tickets"},{id:"sla",icon:"certificate",l:"SLA"},isAdmin&&{id:"org",icon:"sitemap",l:"Organigramm"},isAdmin&&{id:"users",icon:"users",l:"Benutzer"}].filter(Boolean);
-  return <div className="hd-bar">
+  return <div className="hd-bar" style={{position:"relative"}}>
     <div style={{display:"flex",alignItems:"center",gap:8,marginRight:20}}><Ic n="diamond" s={13} col="#D4A017"/><span style={{fontSize:12,fontWeight:700,color:"#D4A017"}}>Krypton Solutions</span><span style={{fontSize:9,color:"rgba(255,255,255,.22)",marginLeft:2}}>Helpdesk</span></div>
     {pages.map(p=><button key={p.id} onClick={()=>setPage(p.id)} className={`hd-nav-btn ${page===p.id?"active":""}`}><Ic n={p.icon} s={12} col={page===p.id?"#D4A017":"rgba(255,255,255,.35)"}/>{p.l}</button>)}
     <div style={{flex:1}}/>
+    {/* Notification bell – visible to ALL staff */}
+    {<div style={{position:"relative",marginRight:10}}>
+      <button onClick={()=>setShowNotif(!showNotif)} style={{background:"rgba(255,255,255,.07)",border:"1px solid rgba(255,255,255,.12)",borderRadius:6,padding:"5px 9px",cursor:"pointer",display:"flex",alignItems:"center",gap:5,color:"rgba(255,255,255,.6)"}}>
+        <Ic n="bell" s={14} col={unread>0?"#D4A017":"rgba(255,255,255,.5)"}/>
+        {unread>0&&<span style={{background:C.red,color:"#fff",fontSize:9,fontWeight:700,borderRadius:10,padding:"1px 5px",minWidth:16,textAlign:"center"}}>{unread}</span>}
+      </button>
+      {showNotif&&<div style={{position:"absolute",right:0,top:"calc(100% + 6px)",width:340,background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,boxShadow:"0 12px 40px rgba(0,0,0,.18)",zIndex:200,overflow:"hidden"}}>
+        <div style={{padding:"12px 16px",borderBottom:`1px solid ${C.border}`,fontSize:12,fontWeight:700,color:C.brownD,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span>{isCxO?"Tickets & SLA-Anfragen":"Neue Portal-Tickets"}</span>
+          <span style={{fontSize:10,color:C.txtMute}}>{notifications.length} gesamt</span>
+        </div>
+        <div style={{maxHeight:320,overflowY:"auto"}}>
+          {notifications.length===0
+            ?<div style={{padding:"24px",textAlign:"center",color:C.txtMute,fontSize:12}}>Keine Benachrichtigungen</div>
+            :notifications.map((n,i)=>(
+              <div key={n.id||i} style={{padding:"12px 16px",borderBottom:`1px solid ${C.border}`,display:"flex",gap:10,alignItems:"flex-start"}}>
+                <div style={{width:32,height:32,borderRadius:8,background:n.type==="sla"?C.goldBg:C.greenBg,border:`1px solid ${n.type==="sla"?C.goldBd:C.greenBd}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <Ic n={n.type==="sla"?"certificate":"ticket"} s={14} col={n.type==="sla"?C.gold:C.green}/>
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:700,color:C.brownD,marginBottom:2}}>{n.title}</div>
+                  <div style={{fontSize:11,color:C.txtMid,lineHeight:1.5}}>{n.text}</div>
+                  {n.email&&<div style={{fontSize:10,color:C.txtMute,marginTop:3,fontFamily:"monospace"}}>{n.email}</div>}
+                  <div style={{fontSize:9,color:C.txtMute,marginTop:4}}>{FMT(n.createdAt)}</div>
+                </div>
+              </div>
+            ))}
+        </div>
+        <div style={{padding:"8px 16px",borderTop:`1px solid ${C.border}`,fontSize:10,color:C.txtMute,textAlign:"center"}}>
+          {isCxO?"Sichtbar für: CBO & CIO":"Neue Portal-Tickets für Support-Team"}
+        </div>
+      </div>}
+    </div>}
     <PIAvatar name={user.name} size={26} gold/>
     <div style={{marginLeft:8,marginRight:10}}><div style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,.85)"}}>{user.name.split(",")[0]}</div><div style={{fontSize:9,color:"rgba(255,255,255,.32)"}}>{user.title}</div></div>
     <button onClick={onLogout} style={{background:"rgba(255,255,255,.07)",border:"1px solid rgba(255,255,255,.12)",borderRadius:6,padding:"4px 10px",color:"rgba(255,255,255,.4)",fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}><Ic n="logout" s={11}/>Logout</button>
   </div>;
 }
 
-function HDDashboard({tickets,user,setPage}){
+function HDDashboard({tickets,user,setPage,notifications=[],isCxO}){
   const isAdmin=user.role==="Admin";
   const myT=isAdmin?tickets:tickets.filter(t=>t.assigneeId===user.id);
   const [open,wip,esc,done]=[myT.filter(t=>t.status==="Offen").length,myT.filter(t=>t.status==="In Bearbeitung").length,myT.filter(t=>t.status==="Eskaliert").length,myT.filter(t=>t.status==="Gelöst"||t.status==="Geschlossen").length];
@@ -877,29 +1077,64 @@ function HDDashboard({tickets,user,setPage}){
             <div style={{flex:1,minWidth:0}}><div style={{fontSize:10,fontWeight:600,color:C.brownD,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.name.split(",")[0]}</div><div style={{fontSize:8,color:C.txtMute,marginBottom:2}}>{a.level}</div><div style={{display:"flex",alignItems:"center",gap:5}}><div style={{flex:1,height:3,background:C.border,borderRadius:2}}><div style={{width:Math.round((a.count/maxL)*100)+"%",height:"100%",background:a.count>=3?C.red:a.count>=2?C.amber:C.green,borderRadius:2}}/></div><span style={{fontSize:9,fontWeight:700,color:C.txtMid,minWidth:10}}>{a.count}</span></div></div>
           </div>)}
         </div>
+        {/* SLA Anfragen – nur CxO */}
+        {isCxO&&notifications.filter(n=>n.type==="sla").length>0&&<div style={{marginTop:14}}>
+          <h3 style={{fontSize:13,fontWeight:700,color:C.brownD,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+            <Ic n="certificate" s={13} col={C.gold}/>SLA-Anfragen
+            <span style={{background:C.red,color:"#fff",fontSize:9,fontWeight:700,borderRadius:10,padding:"1px 6px",marginLeft:2}}>{notifications.filter(n=>n.type==="sla"&&!n.decided).length}</span>
+          </h3>
+          <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:11,overflow:"hidden"}}>
+            {notifications.filter(n=>n.type==="sla").slice(0,3).map((n,i)=><div key={n.id||i} style={{padding:"10px 13px",borderTop:i>0?`1px solid ${C.border}`:undefined,display:"flex",gap:9,alignItems:"flex-start"}}>
+              <Ic n="certificate" s={14} col={n.decided?(n.approved?C.green:C.red):C.gold}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:11,fontWeight:700,color:C.brownD,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.firma} — {n.plan}</div>
+                <div style={{fontSize:9,color:C.txtMute,marginTop:2}}>{n.decided?(n.approved?"✓ Genehmigt":"✗ Abgelehnt"):"⏳ Ausstehend"} · {FMT(n.createdAt)}</div>
+              </div>
+            </div>)}
+          </div>
+        </div>}
+      </div>}
+      {/* Ticket-Benachrichtigungen für Support-Agents */}
+      {!isAdmin&&notifications.length>0&&<div>
+        <h3 style={{fontSize:13,fontWeight:700,color:C.brownD,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+          <Ic n="bell" s={13} col={C.green}/>Neue Portal-Tickets
+          <span style={{background:C.red,color:"#fff",fontSize:9,fontWeight:700,borderRadius:10,padding:"1px 6px",marginLeft:2}}>{notifications.filter(n=>!n.read).length}</span>
+        </h3>
+        <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:11,overflow:"hidden"}}>
+          {notifications.slice(0,5).map((n,i)=><div key={n.id||i} style={{padding:"10px 13px",borderTop:i>0?`1px solid ${C.border}`:undefined,display:"flex",gap:9,alignItems:"flex-start"}}>
+            <div style={{width:28,height:28,borderRadius:7,background:C.greenBg,border:`1px solid ${C.greenBd}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="ticket" s={13} col={C.green}/></div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:11,fontWeight:700,color:C.brownD,marginBottom:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.title}</div>
+              <div style={{fontSize:10,color:C.txtMid}}>{n.firma}</div>
+              <div style={{fontSize:9,color:C.txtMute,marginTop:1}}>{FMT(n.createdAt)}</div>
+            </div>
+          </div>)}
+        </div>
       </div>}
     </div>
   </div>;
 }
 
 function HDTickets({tickets,setTickets,user}){
+  // ALL staff see all tickets and can filter by source — same view as admin
   const isAdmin=user.role==="Admin";
   const [search,setSearch]=useState(""),[fSt,setFSt]=useState("Alle"),[fSla,setFSla]=useState("Alle"),[fSrc,setFSrc]=useState("Alle"),[modal,setModal]=useState(false),[sel,setSel]=useState(null);
-  const visible=isAdmin?tickets:tickets.filter(t=>t.assigneeId===user.id);
+  // Everyone sees all tickets (Punkt 1)
+  const visible=tickets;
   const filtered=visible.filter(t=>{ const ms=fSt==="Alle"||t.status===fSt,ml=fSla==="Alle"||(fSla==="gold"?t.sla==="gold":t.sla==="silver"),mr=fSrc==="Alle"||(fSrc==="portal"?t.source==="portal":t.source!=="portal"),mq=!search||(t.title+t.customer+t.id).toLowerCase().includes(search.toLowerCase()); return ms&&ml&&mr&&mq; });
   const save=form=>{if(sel){setTickets(ts=>ts.map(t=>t.id===sel.id?{...t,...form}:t));}else{const id="T-"+String(_tc++).padStart(4,"0");setTickets(ts=>[{id,...form,status:"Offen",createdAt:NOW(),creatorName:user.name,source:"helpdesk"},...ts]);}setModal(false);setSel(null);};
   const update=(id,status,aId)=>{setTickets(ts=>ts.map(t=>t.id===id?{...t,status,assigneeId:aId}:t));setSel(null);};
   const Chip=({label,v,cur,onChange})=><button onClick={()=>onChange(v)} style={{padding:"3px 10px",borderRadius:20,border:`1px solid ${cur===v?C.gold:C.border}`,background:cur===v?C.goldBg:"transparent",color:cur===v?C.gold:C.txtMute,fontSize:10,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>{label}</button>;
   return <div style={{flex:1,overflowY:"auto",padding:20,background:C.bg}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-      <div><h2 style={{fontSize:17,fontWeight:800,color:C.brownD}}>{isAdmin?"Alle Tickets":"Meine Tickets"}</h2><p style={{fontSize:11,color:C.txtMute,marginTop:2}}>{filtered.length} Tickets{isAdmin?` · ${tickets.filter(t=>t.source==="portal").length} via Portal`:""}</p></div>
+      <div><h2 style={{fontSize:17,fontWeight:800,color:C.brownD}}>Alle Tickets</h2><p style={{fontSize:11,color:C.txtMute,marginTop:2}}>{filtered.length} Tickets · {tickets.filter(t=>t.source==="portal").length} via Portal</p></div>
       <button onClick={()=>{setSel(null);setModal(true);}} className="btn btn-gold btn-sm"><Ic n="plus" s={13} col="#fff"/>Neues Ticket</button>
     </div>
     <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 13px",marginBottom:12,display:"flex",flexWrap:"wrap",gap:7,alignItems:"center"}}>
       <div style={{position:"relative",flex:"1 1 160px"}}><span style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",pointerEvents:"none"}}><Ic n="search" s={12} col={C.txtMute}/></span><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Ticket suchen…" style={{width:"100%",padding:"7px 9px 7px 28px",borderRadius:7,border:`1px solid ${C.border}`,fontSize:11,color:C.txt,background:C.bg,outline:"none",boxSizing:"border-box"}}/></div>
       <div style={{display:"flex",gap:3,flexWrap:"wrap"}}><Chip label="Alle" v="Alle" cur={fSt} onChange={setFSt}/>{STATS.map(s=><Chip key={s} label={s} v={s} cur={fSt} onChange={setFSt}/>)}</div>
       <div style={{display:"flex",gap:3}}>{[["Alle","Alle"],["gold","★ Gold"],["silver","● Silber"]].map(([v,l])=><Chip key={v} label={l} v={v} cur={fSla} onChange={setFSla}/>)}</div>
-      {isAdmin&&<div style={{display:"flex",gap:3}}>{[["Alle","Alle Quellen"],["portal","📬 Portal"],["helpdesk","🖥 Helpdesk"]].map(([v,l])=><Chip key={v} label={l} v={v} cur={fSrc} onChange={setFSrc}/>)}</div>}
+      <div style={{display:"flex",gap:3}}>{[["Alle","Alle Quellen"],["portal","📬 Portal"],["helpdesk","🖥 Helpdesk"]].map(([v,l])=><Chip key={v} label={l} v={v} cur={fSrc} onChange={setFSrc}/>)}</div>
     </div>
     <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:11,overflow:"hidden"}}>
       <table className="data-table"><thead><tr>{["ID","Betreff","Kunde","SLA","Priorität","Level","Zuständig","Status","SLA-Zeit"].map(h=><th key={h}>{h}</th>)}</tr></thead>
@@ -907,20 +1142,91 @@ function HDTickets({tickets,setTickets,user}){
       </tbody></table>
     </div>
     {modal&&<TicketModal onClose={()=>setModal(false)} onSave={save} currentUser={user}/>}
-    {sel&&!modal&&<TicketDetail t={sel} onClose={()=>setSel(null)} onUpdate={update} isAdmin={isAdmin}/>}
+    {sel&&!modal&&<TicketDetail t={sel} onClose={()=>setSel(null)} onUpdate={update} isAdmin={true}/>}
   </div>;
 }
 
-function HDSLAPage(){
+function HDSLAPage({notifications=[],onDecide}){
   const p=[{p:"P1 Kritisch",col:C.red,s:"4 Std.",g:"1 Std."},{p:"P2 Hoch",col:C.amber,s:"8 Std.",g:"4 Std."},{p:"P3 Mittel",col:C.gold,s:"1 AT",g:"8 Std."},{p:"P4 Niedrig",col:C.txtMute,s:"3 AT",g:"1 AT"}];
+  const pending=notifications.filter(n=>!n.decided);
+  const decided=notifications.filter(n=>n.decided);
   return <div style={{flex:1,overflowY:"auto",padding:20,background:C.bg}}>
-    <h2 style={{fontSize:17,fontWeight:800,color:C.brownD,marginBottom:16}}>SLA-Modelle</h2>
+    <h2 style={{fontSize:17,fontWeight:800,color:C.brownD,marginBottom:16}}>SLA-Modelle & Anfragen</h2>
+
+    {/* Pending requests */}
+    {pending.length>0&&<div style={{marginBottom:18}}>
+      <div style={{fontSize:11,fontWeight:700,color:C.red,letterSpacing:".08em",textTransform:"uppercase",marginBottom:10,display:"flex",alignItems:"center",gap:6}}>
+        <Ic n="clock" s={13} col={C.red}/>Offene Anfragen
+        <span style={{background:C.red,color:"#fff",fontSize:9,fontWeight:700,borderRadius:10,padding:"1px 7px"}}>{pending.length}</span>
+      </div>
+      <div style={{display:"grid",gap:12}}>
+        {pending.map((n,i)=>(
+          <div key={n.id||i} style={{background:C.panel,border:`1.5px solid ${C.goldBd}`,borderLeft:`4px solid ${C.gold}`,borderRadius:12,padding:"16px 18px"}}>
+            <div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:12}}>
+              <div style={{width:42,height:42,borderRadius:10,background:C.goldBg,border:`1px solid ${C.goldBd}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic n="certificate" s={20} col={C.gold}/></div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8,marginBottom:3}}>
+                  <div style={{fontSize:14,fontWeight:700,color:C.brownD}}>{n.firma}</div>
+                  <Badge label={n.plan==="Gold"?"★ Gold":"● Silber"} c={n.plan==="Gold"?C.gold:C.txtMid} bg={C.goldBg} bd={C.goldBd} sm/>
+                </div>
+                <div style={{fontSize:12,color:C.txtMid,lineHeight:1.55,marginBottom:4}}>{n.text}</div>
+                <div style={{fontSize:10,color:C.txtMute,display:"flex",gap:12}}>
+                  <span style={{fontFamily:"monospace"}}>{n.email}</span>
+                  <span>{FMT(n.createdAt)}</span>
+                </div>
+              </div>
+            </div>
+            {onDecide&&<div style={{display:"flex",gap:10,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
+              <button onClick={()=>onDecide(n.id,false,n)} style={{flex:1,padding:"9px",borderRadius:8,border:`1.5px solid ${C.redBd}`,background:C.redBg,color:C.red,fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                <Ic n="x" s={13} col={C.red}/>Ablehnen
+              </button>
+              <button onClick={()=>onDecide(n.id,true,n)} style={{flex:2,padding:"9px",borderRadius:8,border:"none",background:C.green,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                <Ic n="check" s={13} col="#fff"/>Genehmigen
+              </button>
+            </div>}
+          </div>
+        ))}
+      </div>
+    </div>}
+
+    {/* Decided requests */}
+    {decided.length>0&&<div style={{marginBottom:18}}>
+      <div style={{fontSize:11,fontWeight:700,color:C.txtMute,letterSpacing:".08em",textTransform:"uppercase",marginBottom:8}}>Bearbeitete Anfragen ({decided.length})</div>
+      <div style={{display:"grid",gap:8}}>
+        {decided.map((n,i)=>(
+          <div key={n.id||i} style={{background:C.panel,border:`1px solid ${n.approved?C.greenBd:C.redBd}`,borderLeft:`4px solid ${n.approved?C.green:C.red}`,borderRadius:10,padding:"11px 16px",display:"flex",gap:12,alignItems:"center"}}>
+            <Ic n={n.approved?"circle-check":"circle-x"} s={20} col={n.approved?C.green:C.red}/>
+            <div style={{flex:1}}><div style={{fontSize:12,fontWeight:700,color:C.brownD}}>{n.firma} — {n.plan}</div><div style={{fontSize:11,color:C.txtMute}}>{n.approved?"Genehmigt":"Abgelehnt"} · {FMT(n.createdAt)} · Kunde informiert ✓</div></div>
+            <Badge label={n.approved?"✓ Genehmigt":"✗ Abgelehnt"} c={n.approved?C.green:C.red} bg={n.approved?C.greenBg:C.redBg} bd={n.approved?C.greenBd:C.redBd} sm/>
+          </div>
+        ))}
+      </div>
+    </div>}
+
+    {notifications.length===0&&<div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:11,padding:"14px 16px",marginBottom:16,display:"flex",alignItems:"center",gap:10,color:C.txtMute}}>
+      <Ic n="certificate" s={16} col={C.border}/><span style={{fontSize:12}}>Keine SLA-Anfragen vorhanden</span>
+    </div>}
+
+    <div style={{fontSize:11,fontWeight:700,color:C.txtMute,letterSpacing:".08em",textTransform:"uppercase",marginBottom:10}}>Aktive SLA-Modelle</div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
-      {[{sym:"●",l:"Silber",c:C.txtMid,bg:"#F5F0E8",bd:C.border,t:"Mo–Fr 08:00–17:00",r:"≤ 1 Arbeitstag"},{sym:"★",l:"Gold",c:C.gold,bg:C.goldBg,bd:C.goldBd,t:"24/7",r:"≤ 4 Stunden"}].map(pl=><div key={pl.l} style={{background:C.panel,border:`2px solid ${pl.bd}`,borderRadius:11,overflow:"hidden"}}><div style={{background:pl.bg,padding:"12px 16px",borderBottom:`1px solid ${pl.bd}`,display:"flex",alignItems:"center",gap:9}}><span style={{fontSize:20,color:pl.c}}>{pl.sym}</span><div style={{fontSize:14,fontWeight:800,color:pl.c}}>{pl.l}</div></div><div style={{padding:"11px 16px"}}>{[["Zeiten",pl.t],["Reaktion",pl.r]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:`1px solid ${C.border}`,fontSize:13}}><span style={{color:C.txtMute}}>{k}</span><span style={{color:pl.c,fontWeight:600}}>{v}</span></div>)}</div></div>)}
+      {[{sym:"●",l:"Silber",c:C.txtMid,bg:"#F5F0E8",bd:C.border,t:"Mo–Fr 08:00–17:00",r:"≤ 1 Arbeitstag",price:"890.- /Jahr"},{sym:"★",l:"Gold",c:C.gold,bg:C.goldBg,bd:C.goldBd,t:"24/7 inkl. Wochenende",r:"≤ 4 Stunden",price:"1'490.- /Jahr"}].map(pl=>(
+        <div key={pl.l} style={{background:C.panel,border:`2px solid ${pl.bd}`,borderRadius:11,overflow:"hidden"}}>
+          <div style={{background:pl.bg,padding:"12px 16px",borderBottom:`1px solid ${pl.bd}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div style={{display:"flex",alignItems:"center",gap:9}}><span style={{fontSize:20,color:pl.c}}>{pl.sym}</span><div style={{fontSize:14,fontWeight:800,color:pl.c}}>{pl.l}</div></div>
+            <div style={{fontSize:13,fontWeight:700,color:pl.c}}>CHF {pl.price}</div>
+          </div>
+          <div style={{padding:"11px 16px"}}>{[["Zeiten",pl.t],["Reaktion",pl.r]].map(([k,v])=><div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${C.border}`,fontSize:13}}><span style={{color:C.txtMute}}>{k}</span><span style={{color:pl.c,fontWeight:600}}>{v}</span></div>)}</div>
+        </div>
+      ))}
     </div>
-    <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:11,overflow:"hidden"}}><table className="data-table"><thead><tr>{["Priorität","Silber","Gold"].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{p.map(r=><tr key={r.p}><td><span style={{display:"inline-flex",alignItems:"center",gap:5}}><span style={{width:7,height:7,borderRadius:"50%",background:r.col,display:"inline-block"}}/><strong style={{fontSize:12,color:C.brownD}}>{r.p}</strong></span></td><td style={{fontSize:12}}>{r.s}</td><td style={{fontSize:12,fontWeight:700,color:C.gold}}>{r.g}</td></tr>)}</tbody></table></div>
+    <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:11,overflow:"hidden"}}>
+      <table className="data-table"><thead><tr>{["Priorität","Silber","Gold"].map(h=><th key={h}>{h}</th>)}</tr></thead>
+      <tbody>{p.map(r=><tr key={r.p}><td><span style={{display:"inline-flex",alignItems:"center",gap:5}}><span style={{width:7,height:7,borderRadius:"50%",background:r.col,display:"inline-block"}}/><strong style={{fontSize:12,color:C.brownD}}>{r.p}</strong></span></td><td style={{fontSize:12}}>{r.s}</td><td style={{fontSize:12,fontWeight:700,color:C.gold}}>{r.g}</td></tr>)}</tbody>
+      </table>
+    </div>
   </div>;
 }
+
 
 function HDOrgPage(){
   const mgmt=[{name:"Calisto, Marcello",title:"CBO"},{name:"Matos, Fabio",title:"CIO"},{name:"Hachem, Ghaith",title:"CIO"},{name:"Aswal, Aryan",title:"CIO"}];
@@ -952,27 +1258,71 @@ function App(){
   const [hdPage,setHdPage]=useState("dashboard");
   const [tickets,setTickets]=useState(SEED);
   const [showChat,setShowChat]=useState(false);
+  const [notifications,setNotifications]=useState([]);
+  const [showNotif,setShowNotif]=useState(false);
 
   const doSL=u=>{setStaffUser(u);setShowSL(false);setHdPage("dashboard");setMode("helpdesk");};
   const doCL=c=>{setCustomer(c);setShowCL(false);setMode("portal");};
   const doLogout=()=>{setStaffUser(null);setCustomer(null);setMode("website");};
 
+  // Called from portal (new ticket) and SLA page (new subscription)
+  const addNotification=n=>setNotifications(ns=>[{...n,id:Date.now(),read:false},...ns]);
+
+  // Customer SLA decision messages: keyed by customerId
+  const [customerMessages,setCustomerMessages]=useState({});
+  const addCustomerMessage=(customerId,msg)=>setCustomerMessages(m=>({...m,[customerId]:[...(m[customerId]||[]),msg]}));
+
+  // Approve or reject a SLA request - notify customer and update their SLA model
+  const decideSLA=(notifId,approved,req)=>{
+    setNotifications(ns=>ns.map(n=>n.id===notifId?{...n,decided:true,approved}:n));
+    const cust=CUSTOMERS.find(c=>c.email===req.email||c.name===req.firma);
+    if(cust){
+      // Fix 3: If approved, update the customer's SLA in CUSTOMERS array and pass newSla in message
+      if(approved&&req.targetSla){
+        cust.sla=req.targetSla; // mutate the CUSTOMERS record so it persists
+      }
+      addCustomerMessage(cust.id,{
+        type:approved?"approved":"rejected",
+        plan:req.plan,
+        newSla:approved?req.targetSla:null, // Fix 3: carry new SLA to CustomerPortal
+        firma:req.firma,
+        text:approved
+          ?`✅ Ihre SLA-Anfrage für das ${req.plan}-Modell wurde genehmigt! Ihr Servicemodell wurde sofort auf ${req.plan} umgestellt. CHF ${req.plan==="Gold"?"1'490":"890"}.- /Jahr. Bei Fragen wenden Sie sich an info@krypton.ch.`
+          :`❌ Ihre SLA-Anfrage für das ${req.plan}-Modell wurde abgelehnt. Bitte kontaktieren Sie uns unter info@krypton.ch für weitere Informationen.`,
+        createdAt:NOW(),
+        read:false,
+      });
+    }
+  };
+
+  const unread=notifications.filter(n=>!n.read).length;
+  const markRead=()=>setNotifications(ns=>ns.map(n=>({...n,read:true})));
+
   if(mode==="helpdesk"&&staffUser){
+    // CBO/CIO = Calisto(1), Matos(2), Hachem(3), Aswal(4) + Admin(0) = ids 0-4, role Admin
+    // isCxO = ONLY the named CBO/CIO (not generic admin id:0 for demo purposes we include all Admin role)
+    const isCxO=staffUser.role==="Admin"; // all with role Admin = Management
+    const isAgent=staffUser.role==="Agent";
+
+    // Agents get ONLY ticket notifications; CxO get everything
+    const myNotifs=isCxO ? notifications : notifications.filter(n=>n.type==="ticket");
+    const myUnread=myNotifs.filter(n=>!n.read).length;
+
     return <div style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden"}}>
-      <HDBar page={hdPage} setPage={setHdPage} user={staffUser} onLogout={doLogout}/>
+      <HDBar page={hdPage} setPage={setHdPage} user={staffUser} onLogout={doLogout} notifications={myNotifs} unread={myUnread} showNotif={showNotif} setShowNotif={v=>{setShowNotif(v);if(v)markRead();}} isCxO={isCxO}/>
       <div style={{flex:1,overflow:"hidden",display:"flex"}}>
-        {hdPage==="dashboard"&&<HDDashboard tickets={tickets} user={staffUser} setPage={setHdPage}/>}
+        {hdPage==="dashboard"&&<HDDashboard tickets={tickets} user={staffUser} setPage={setHdPage} notifications={myNotifs} isCxO={isCxO}/>}
         {hdPage==="tickets"  &&<HDTickets   tickets={tickets} setTickets={setTickets} user={staffUser}/>}
-        {hdPage==="sla"      &&<HDSLAPage/>}
-        {hdPage==="org"      &&staffUser.role==="Admin"&&<HDOrgPage/>}
-        {hdPage==="users"    &&staffUser.role==="Admin"&&<HDUsersPage/>}
+        {hdPage==="sla"      &&<HDSLAPage   notifications={isCxO?notifications.filter(n=>n.type==="sla"):[]} onDecide={isCxO?decideSLA:null}/>}
+        {hdPage==="org"      &&isCxO&&<HDOrgPage/>}
+        {hdPage==="users"    &&isCxO&&<HDUsersPage/>}
       </div>
     </div>;
   }
 
   if(mode==="portal"&&customer){
     return <>
-      <CustomerPortal customer={customer} tickets={tickets} setTickets={setTickets} onLogout={doLogout} showChat={showChat} setShowChat={setShowChat}/>
+      <CustomerPortal customer={customer} tickets={tickets} setTickets={setTickets} onLogout={doLogout} showChat={showChat} setShowChat={setShowChat} addNotification={addNotification} customerMessages={customerMessages[customer.id]||[]}/>
       {showChat&&<AIChat onClose={()=>setShowChat(false)} customer={customer}/>}
     </>;
   }
@@ -981,7 +1331,7 @@ function App(){
     <SiteNav page={webPage} setPage={setWebPage} onStaffLogin={()=>setShowSL(true)} onPortalLogin={()=>setShowCL(true)} showChat={showChat} setShowChat={setShowChat}/>
     {webPage==="Home"      &&<HomePage      setPage={setWebPage} onStaffLogin={()=>setShowSL(true)} onPortalLogin={()=>setShowCL(true)}/>}
     {webPage==="Leistungen"&&<LeistungenPage onPortalLogin={()=>setShowCL(true)}/>}
-    {webPage==="SLA"       &&<SLAPage       onPortalLogin={()=>setShowCL(true)}/>}
+    {webPage==="SLA"       &&<SLAPage       onPortalLogin={()=>setShowCL(true)} addNotification={addNotification}/>}
     {webPage==="Team"      &&<TeamPage/>}
     {webPage==="Stellen"   &&<StellenPage/>}
     {webPage==="Kontakt"   &&<KontaktPage   onPortalLogin={()=>setShowCL(true)}/>}
